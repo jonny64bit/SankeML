@@ -42,9 +42,8 @@ for (let y = 0; y < heightSquares; y++) {
 
 var movement = new Movement();
 var snake = new Snake(movement);
-var apple = new Apple();
-apple.X = 20;
-apple.Y = 20;
+var apple = new Apple(widthSquares, heightSquares);
+apple.Move(snake.Segments);
 
 let seconds = 0;
 

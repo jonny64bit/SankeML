@@ -39,29 +39,28 @@ export class Snake {
         else if (this.Movement.CurrentDirection == Direction.Up)
             newPosition.Y -= 1;
 
-        if(newPosition.Y == apple.Y && newPosition.X == apple.X)
-        {
+        if (newPosition.Y == apple.Y && newPosition.X == apple.X) {
             var newSegment = new SnakeSegment();
             newSegment.X = this.Segments.reverse()[0].X;
             newSegment.Y = this.Segments.reverse()[0].Y;
             this.Segments.push(newSegment);
+            apple.Move(this.Segments);
         }
 
         let lastPosition: Position = null
         this.Segments.forEach(segment => {
-            if(lastPosition == null)
-            {
+            if (lastPosition == null) {
                 lastPosition = {
-                    X : segment.X,
-                    Y : segment.Y
+                    X: segment.X,
+                    Y: segment.Y
                 };
                 segment.X = newPosition.X;
                 segment.Y = newPosition.Y;
             }
             else {
                 let thisSegmentsPosition = {
-                    X : segment.X,
-                    Y : segment.Y
+                    X: segment.X,
+                    Y: segment.Y
                 }
                 segment.X = lastPosition.X;
                 segment.Y = lastPosition.Y;
@@ -86,6 +85,36 @@ export interface Position {
 }
 
 export class Apple implements Position {
+    constructor(width: number, height: number) {
+        this.Width = width;
+        this.Height = height;
+    }
+
     X: number;
     Y: number;
+    Width: number;
+    Height: number;
+
+    Move(snakeSegments: SnakeSegment[]) {
+        while(true) {
+            var randomX = this.RandomInteger(0, this.Width - 1);
+            var randomY = this.RandomInteger(0, this.Height - 1);
+
+            let conflict = false;
+            snakeSegments.forEach(segement => {
+                if(segement.X == randomX && segement.Y == randomY)
+                    conflict = true;
+            });
+
+            if(!conflict)
+            {
+                this.X = randomX;
+                this.Y = randomY;
+                return;
+            }
+        }
+    }
+    RandomInteger(min, max) {
+        return Math.floor(Math.random() * (max - min)) + min;
+    }
 }
