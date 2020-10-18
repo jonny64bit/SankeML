@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+      "target": "esnext",
+      "moduleResolution": "node",
+      "noImplicitAny": false,
+      "noEmitOnError": true,
+      "removeComments": false,
+      "sourceMap": false,
+      "allowSyntheticDefaultImports": true,
+      "experimentalDecorators": true,
+    },
+    "exclude": [
+      "node_modules"
+    ]
+}
