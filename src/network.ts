@@ -9,7 +9,7 @@ export class Network {
 
         const hidden = tf.layers.dense({
             units: 8,
-            inputShape: [4],
+            inputShape: [8],
             activation: "relu"
         });
         this.Model.add(hidden);
@@ -72,9 +72,9 @@ export class Network {
                         let w = values[j];
 
                         if (Math.random() > 0.5)
-                            values[j] = w + 0.001;
+                            values[j] = w + 0.1;
                         else
-                            values[j] = w - 0.001;
+                            values[j] = w - 0.1;
                     }
                 }
 
@@ -83,5 +83,13 @@ export class Network {
             }
             this.Model.setWeights(mutatedWeights);
         })
+    }
+
+    GetWeights() {
+        return this.Model.getWeights();
+    }
+
+    SetWeights(array) {
+        return this.Model.setWeights(array);
     }
 }
