@@ -18,6 +18,7 @@ const widthSquares = app.screen.width / sizePlusSpace;
 const heightSquares = app.screen.height / sizePlusSpace;
 const backgroundColor = 0x004400;
 const appleColor = 0xFF0000;
+let dead = false;
 
 //console.log("Width Squares: " + app.screen.width + " (" + widthSquares + ")");
 //console.log("Height Squares: " + app.screen.height + " (" + heightSquares + ")");
@@ -41,19 +42,32 @@ for (let y = 0; y < heightSquares; y++) {
 }
 
 var movement = new Movement();
-var snake = new Snake(movement);
+var snake = new Snake(movement, widthSquares, heightSquares);
 var apple = new Apple(widthSquares, heightSquares);
 apple.Move(snake.Segments);
 
 let seconds = 0;
 
 app.ticker.add((delta) => {
+  if(movement.Restart) {
+    movement.Pasued = false;
+    movement.Restart = false;
+
+    movement = new Movement();
+    snake = new Snake(movement, widthSquares, heightSquares);
+    apple = new Apple(widthSquares, heightSquares);
+    apple.Move(snake.Segments);
+  }
+
   if(movement.Pasued)
+    return;
+
+  if(dead)
     return;
 
   seconds += (1 / 60) * delta;
   if (seconds >= 0.2) {
-    snake.Move(apple);
+    dead = snake.Move(apple);
     seconds = 0;
   }
 

@@ -16,12 +16,14 @@ export class Movement {
     CurrentDirection: Direction = Direction.Right;
     Snake: Snake = null;
     Pasued = true;
+    Restart = false;
     constructor() {
         let left = this.setupKey("ArrowLeft");
         let up = this.setupKey("ArrowUp");
         let right = this.setupKey("ArrowRight");
         let down = this.setupKey("ArrowDown");
         let pause = this.setupKey("p");
+        let restart = this.setupKey("r");
 
         left.press = () => {
             if (this.Snake.Segments.length > 1 && this.CurrentDirection != Direction.Right)
@@ -53,6 +55,10 @@ export class Movement {
 
         pause.press = () => {
             this.Pasued = !this.Pasued;
+        }
+
+        restart.press = () => {
+            this.Restart = true;
         }
     }
     setupKey(value: string) {

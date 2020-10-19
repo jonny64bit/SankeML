@@ -1,18 +1,23 @@
 import { Direction, Movement } from './movemet';
 
 export class Snake {
-    constructor(movement: Movement) {
+    constructor(movement: Movement, width: number, height: number) {
         var header = new SnakeSegment();
         header.X = 5;
         header.Y = 5;
         this.Segments.push(header);
         this.Movement = movement;
         this.Movement.Snake = this;
+        this.Width = width;
+        this.Height = height;
     }
+    
     Movement: Movement = null;
     ForegroundColor = 0xFFFFFF;
     X = () => { return this.Segments[0].X; }
     Y = () => { return this.Segments[0].Y; }
+    Width: number;
+    Height: number;
     Segments: SnakeSegment[] = []
 
     Draw(tiles: Tile[]) {
@@ -24,7 +29,7 @@ export class Snake {
         });
     }
 
-    Move(apple: Apple) {
+    Move(apple: Apple) : boolean {
         const newPosition: Position = {
             X: this.X(),
             Y: this.Y()
@@ -39,12 +44,27 @@ export class Snake {
         else if (this.Movement.CurrentDirection == Direction.Up)
             newPosition.Y -= 1;
 
+        //Check if we hit boundary
+        if(newPosition.X < 0 || newPosition.Y < 0 || newPosition.X >= this.Width || newPosition.Y >= this.Height)
+            return true;
+
+        //Check if we hit ourself
+        let hitSelf = false;
+        this.Segments.forEach(segment => {
+            if(segment.X == newPosition.X && segment.Y == newPosition.Y)
+                hitSelf = true;
+        });
+        if(hitSelf)
+            return true;
+
+        //Check if we hit apple
         if (newPosition.Y == apple.Y && newPosition.X == apple.X) {
+            apple.Move(this.Segments);
+
             var newSegment = new SnakeSegment();
             newSegment.X = this.Segments.reverse()[0].X;
             newSegment.Y = this.Segments.reverse()[0].Y;
             this.Segments.push(newSegment);
-            apple.Move(this.Segments);
         }
 
         let lastPosition: Position = null
@@ -67,6 +87,8 @@ export class Snake {
                 lastPosition = thisSegmentsPosition;
             }
         });
+
+        return false;
     }
 }
 
