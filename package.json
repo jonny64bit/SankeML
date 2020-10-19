@@ -19,5 +19,10 @@
     "webpack": "^4.29.5",
     "webpack-cli": "^3.2.3",
     "webpack-dev-server": "^3.2.1"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "^2.6.0",
+    "@types/p5": "^0.9.1",
+    "p5": "^1.1.9"
   }
 }

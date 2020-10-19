@@ -1,16 +1,13 @@
 import * as PIXI from 'pixi.js';
-import { Movement } from './movemet';
+import { Direction, Movement } from './movemet';
 import { Snake, Tile, Apple } from "./snake";
+import { Network } from "./network";
 
-// The application will create a renderer using WebGL, if possible,
-// with a fallback to a canvas render. It will also setup the ticker
-// and the root stage PIXI.Container
+//Get canvas going
 const app = new PIXI.Application({ backgroundColor: 0x111111 });
-
-// The application will create a canvas element for you that you
-// can then insert into the DOM
 document.body.appendChild(app.view);
 
+//Game values
 const size = 18;
 const space = 2;
 const sizePlusSpace = size + space;
@@ -19,14 +16,12 @@ const heightSquares = app.screen.height / sizePlusSpace;
 const backgroundColor = 0x004400;
 const appleColor = 0xFF0000;
 let dead = false;
+let seconds = 0;
 
-//console.log("Width Squares: " + app.screen.width + " (" + widthSquares + ")");
-//console.log("Height Squares: " + app.screen.height + " (" + heightSquares + ")");
-
+//Lets setup our tiles
 let tiles: Tile[] = [];
 for (let y = 0; y < heightSquares; y++) {
   for (let x = 0; x < widthSquares; x++) {
-    //console.log("Drawing at: " + (x * sizePlusSpace) + " - " + x + " - " + size);
     const tile = new PIXI.Sprite(PIXI.Texture.WHITE);
     tile.position.set(x * sizePlusSpace, y * sizePlusSpace);
     tile.width = size;
@@ -41,32 +36,71 @@ for (let y = 0; y < heightSquares; y++) {
   }
 }
 
-var movement = new Movement();
-var snake = new Snake(movement, widthSquares, heightSquares);
-var apple = new Apple(widthSquares, heightSquares);
-apple.Move(snake.Segments);
+let movement: Movement = new Movement();
+let snake: Snake = null;
+let apple: Apple = null;
+let network: Network = new Network();
 
-let seconds = 0;
+function ResetGame() {
+  app.ticker.stop();
+  
+  dead = false;
+  apple = null;
+  snake = null;
+  seconds = 0;
+
+  tiles.forEach(t => {
+    t.Tile.tint = backgroundColor;
+  });
+
+  movement.CurrentDirection = Direction.Right;
+  snake = new Snake(movement, widthSquares, heightSquares);
+  apple = new Apple(widthSquares, heightSquares);
+
+  network = network.Copy();
+  network.Mutate(0.3);
+
+  //Set apple intial position
+  apple.Move(snake.Segments);
+
+  app.ticker.start();
+}
+
+function SnakeMath(): number[] {
+  let values: number[] = [];
+
+  //0) Distance from left
+  values[0] = snake.X();
+
+  //1) Distance from Right
+  values[1] = widthSquares - values[0];
+
+  //2) Distance from top
+  values[2] = snake.Y();
+
+  //1) Distance from Right
+  values[3] = heightSquares - values[2];
+
+  return values;
+}
+
+function ProcessNetwork() {
+
+}
+
+ResetGame();
 
 app.ticker.add((delta) => {
-  if(movement.Restart) {
-    movement.Pasued = false;
-    movement.Restart = false;
+  if (movement.Restart || dead)
+    ResetGame();
 
-    movement = new Movement();
-    snake = new Snake(movement, widthSquares, heightSquares);
-    apple = new Apple(widthSquares, heightSquares);
-    apple.Move(snake.Segments);
-  }
-
-  if(movement.Pasued)
-    return;
-
-  if(dead)
+  if (movement.Pasued)
     return;
 
   seconds += (1 / 60) * delta;
   if (seconds >= 0.2) {
+    movement.CurrentDirection = network.Predict(SnakeMath())
+
     dead = snake.Move(apple);
     seconds = 0;
   }
@@ -77,6 +111,6 @@ app.ticker.add((delta) => {
       t.Tile.tint = appleColor;
   });
 
-  
+
   snake.Draw(tiles);
 });
