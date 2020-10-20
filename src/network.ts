@@ -1,5 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
-import { Direction, Movement } from './movemet';
+export enum Turn { Forward, Left, Right }
 
 export class Network {
     Model: tf.Sequential;
@@ -15,36 +15,33 @@ export class Network {
         this.Model.add(hidden);
 
         const output = tf.layers.dense({
-            units: 4,
+            units: 3,
             activation: "softmax"
         });
         this.Model.add(output);
         this.Model.summary();
-        this.Model.compile({optimizer: "sgd", loss: "meanSquaredError"});
+        this.Model.compile({ optimizer: "sgd", loss: "meanSquaredError" });
     }
 
-    Predict(inputs: any[]) : Direction {
+    Predict(inputs: any[]): Turn {
         var result = tf.tidy(() => {
             const xs = tf.tensor2d([inputs]);
             const ys = this.Model.predict(xs) as tf.Tensor<tf.Rank>;
             const outputs = ys.dataSync();
-            console.log(outputs);
+            //console.log(outputs);
             return outputs;
         });
 
         let left = result[0];
-        let up = result[1];
+        let continueForward = result[1];
         let right = result[2];
-        let down = result[3];
 
-        if (left > up && left > right && left > down)
-            return Direction.Left;
-        if (up > left && up > right && up > down)
-            return Direction.Up;
-        if (right > up && right > left && right > down)
-            return Direction.Right;
-        if (down > up && down > right && down > left)
-            return Direction.Down;
+        if (left > continueForward && left > right)
+            return Turn.Left;
+        if (continueForward > left && continueForward > right)
+            return Turn.Forward;
+        if (right > continueForward && right > left)
+            return Turn.Right;
     }
 
     Copy(): Network {

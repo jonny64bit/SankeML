@@ -1,24 +1,25 @@
-import { Direction, Movement } from './movemet';
+import { Movement } from './movemet';
+
+export enum Direction { Left, Up, Down, Right }
+export enum MoveResult { Nothing, Dead, Apple }
 
 export class Snake {
-    constructor(movement: Movement, width: number, height: number) {
+    constructor(width: number, height: number) {
         var header = new SnakeSegment();
         header.X = 5;
         header.Y = 5;
         this.Segments.push(header);
-        this.Movement = movement;
-        this.Movement.Snake = this;
         this.Width = width;
         this.Height = height;
     }
-    
-    Movement: Movement = null;
+
     ForegroundColor = 0xFFFFFF;
     X = () => { return this.Segments[0].X; }
     Y = () => { return this.Segments[0].Y; }
     Width: number;
     Height: number;
     Segments: SnakeSegment[] = []
+    CurrentDirection: Direction = Direction.Right;
 
     Draw(tiles: Tile[]) {
         this.Segments.forEach(s => {
@@ -29,35 +30,36 @@ export class Snake {
         });
     }
 
-    Move(apple: Apple) : boolean {
+    Move(apple: Apple): MoveResult {
         const newPosition: Position = {
             X: this.X(),
             Y: this.Y()
         }
 
-        if (this.Movement.CurrentDirection == Direction.Right)
+        if (this.CurrentDirection == Direction.Right)
             newPosition.X += 1;
-        else if (this.Movement.CurrentDirection == Direction.Left)
+        else if (this.CurrentDirection == Direction.Left)
             newPosition.X -= 1;
-        else if (this.Movement.CurrentDirection == Direction.Down)
+        else if (this.CurrentDirection == Direction.Down)
             newPosition.Y += 1;
-        else if (this.Movement.CurrentDirection == Direction.Up)
+        else if (this.CurrentDirection == Direction.Up)
             newPosition.Y -= 1;
 
         //Check if we hit boundary
-        if(newPosition.X < 0 || newPosition.Y < 0 || newPosition.X >= this.Width || newPosition.Y >= this.Height)
-            return true;
+        if (newPosition.X < 0 || newPosition.Y < 0 || newPosition.X >= this.Width || newPosition.Y >= this.Height)
+            return MoveResult.Dead;
 
         //Check if we hit ourself
         let hitSelf = false;
         this.Segments.forEach(segment => {
-            if(segment.X == newPosition.X && segment.Y == newPosition.Y)
+            if (segment.X == newPosition.X && segment.Y == newPosition.Y)
                 hitSelf = true;
         });
-        if(hitSelf)
-            return true;
+        if (hitSelf)
+            return MoveResult.Dead;
 
         //Check if we hit apple
+        let result = MoveResult.Nothing;
         if (newPosition.Y == apple.Y && newPosition.X == apple.X) {
             apple.Move(this.Segments);
 
@@ -65,6 +67,7 @@ export class Snake {
             newSegment.X = this.Segments.reverse()[0].X;
             newSegment.Y = this.Segments.reverse()[0].Y;
             this.Segments.push(newSegment);
+            result = MoveResult.Apple;
         }
 
         let lastPosition: Position = null
@@ -88,7 +91,7 @@ export class Snake {
             }
         });
 
-        return false;
+        return result;
     }
 }
 
@@ -118,18 +121,17 @@ export class Apple implements Position {
     Height: number;
 
     Move(snakeSegments: SnakeSegment[]) {
-        while(true) {
+        while (true) {
             var randomX = this.RandomInteger(0, this.Width - 1);
             var randomY = this.RandomInteger(0, this.Height - 1);
 
             let conflict = false;
             snakeSegments.forEach(segement => {
-                if(segement.X == randomX && segement.Y == randomY)
+                if (segement.X == randomX && segement.Y == randomY)
                     conflict = true;
             });
 
-            if(!conflict)
-            {
+            if (!conflict) {
                 this.X = randomX;
                 this.Y = randomY;
                 return;

@@ -10,48 +10,17 @@ export interface MovementKey {
     downHandler(event: KeyboardEvent),
     upHandler(event: KeyboardEvent)
 }
-export enum Direction { Up, Down, Left, Right }
+
 
 export class Movement {
-    CurrentDirection: Direction = Direction.Right;
     Snake: Snake = null;
     Pasued = true;
     Restart = false;
+    Force = false;
     constructor() {
-        let left = this.setupKey("ArrowLeft");
-        let up = this.setupKey("ArrowUp");
-        let right = this.setupKey("ArrowRight");
-        let down = this.setupKey("ArrowDown");
         let pause = this.setupKey("p");
         let restart = this.setupKey("r");
-
-        left.press = () => {
-            if (this.Snake.Segments.length > 1 && this.CurrentDirection != Direction.Right)
-                this.CurrentDirection = Direction.Left;
-            else if (this.Snake.Segments.length == 1)
-                this.CurrentDirection = Direction.Left;
-        };
-
-        up.press = () => {
-            if (this.Snake.Segments.length > 0 && this.CurrentDirection != Direction.Down)
-                this.CurrentDirection = Direction.Up;
-            else if (this.Snake.Segments.length == 1)
-                this.CurrentDirection = Direction.Up;
-        };
-
-        right.press = () => {
-            if (this.Snake.Segments.length > 0 && this.CurrentDirection != Direction.Left)
-                this.CurrentDirection = Direction.Right;
-            else if (this.Snake.Segments.length == 1)
-                this.CurrentDirection = Direction.Right;
-        };
-
-        down.press = () => {
-            if (this.Snake.Segments.length > 0 && this.CurrentDirection != Direction.Up)
-                this.CurrentDirection = Direction.Down;
-            else if (this.Snake.Segments.length == 1)
-                this.CurrentDirection = Direction.Down;
-        };
+        let force = this.setupKey("f");
 
         pause.press = () => {
             this.Pasued = !this.Pasued;
@@ -59,6 +28,10 @@ export class Movement {
 
         restart.press = () => {
             this.Restart = true;
+        }
+
+        force.press = () => {
+            this.Force = true;
         }
     }
     setupKey(value: string) {
