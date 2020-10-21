@@ -9,7 +9,7 @@ export class Network {
 
         const hidden = tf.layers.dense({
             units: 8,
-            inputShape: [8],
+            inputShape: [12],
             activation: "relu"
         });
         this.Model.add(hidden);

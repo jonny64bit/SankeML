@@ -134,6 +134,11 @@ function SnakeMath(): number[] {
     }
   }
 
+  values.push(snakeX);
+  values.push(widthSquares - snakeX);
+  values.push(snakeY);
+  values.push(heightSquares - snakeY);
+
   return values;
 }
 
