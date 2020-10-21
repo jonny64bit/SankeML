@@ -26,6 +26,7 @@ let currentParent: Save = null;
 let childrenCount = 0;
 let firstRun = true;
 let timeSinceLastApple = 0;
+let generation = 0;
 
 //Lets setup our tiles
 let tiles: Tile[] = [];
@@ -66,34 +67,40 @@ function ResetGame() {
   apple = new Apple(widthSquares, heightSquares);
 
   saves.push({
-    Weights: network.GetWeights(),
+    Network: network,
     Score: score
   });
 
-  if (firstRun && saves.length < 100) {
+  if (firstRun && saves.length < 25) {
+    network = new Network();
     network.Mutate(0.3);
   }
-  else if (saves.length > 100) {
+  else if(currentLeaders.length > 0 && childrenCount < 10)
+  {
+    network = currentParent.Network.Copy();
+    network.Mutate(0.05);
+    childrenCount++;
+  }
+  else if(currentLeaders.length > 0 && childrenCount >= 10)
+  {
+    currentParent = currentLeaders.pop();
+    network = currentParent.Network;
+    childrenCount = 0;
+  }
+  else {
     firstRun = false;
+    saves = saves.filter(save => save.Score > 20);
     saves = saves.sort((a, b) => (a.Score <= b.Score) ? 1 : 0);
-    currentLeaders = saves.splice(0, 10);
+    currentLeaders = saves.slice(0, 10 < saves.length ? 10 : saves.length - 1);
     currentParent = currentLeaders.pop();
     saves = [];
     childrenCount = 0;
-  }
 
-  if (currentParent != null) {
-    if(childrenCount > 10 && currentLeaders.length > 0) {
-      currentParent = currentLeaders.pop();
-      network.SetWeights(currentParent.Weights);
-      childrenCount = 0;
-    }
-    else {
-      network.SetWeights(currentParent.Weights);
-      network.Mutate(0.3);
-      childrenCount++;
-    }
-  }  
+    generation++;
+
+    console.log("Current Score Range = " + currentLeaders[0].Score + " - "  + currentParent.Score);
+    console.log("Generations " + generation);
+  } 
 
   score = 0;
 
@@ -171,17 +178,16 @@ app.ticker.add((delta) => {
     var result = snake.Move(apple);
 
     seconds = 0;
-    if(result == MoveResult.Dead || movement.Force || timeSinceLastApple > 5)
+    if(result == MoveResult.Dead || movement.Force || timeSinceLastApple > 20)
     {
       timeSinceLastApple = 0;
       movement.Force = false;
-      score = score - 100;
       dead = true;
     }
     else if(result == MoveResult.Apple)
     {
       timeSinceLastApple = 0;
-      score = score + 100;;
+      score = score + 450;
     } 
     else
       score++;
@@ -199,5 +205,5 @@ app.ticker.add((delta) => {
 
 class Save {
   Score: number;
-  Weights: tf.Tensor<tf.Rank>[];
+  Network: Network;
 }

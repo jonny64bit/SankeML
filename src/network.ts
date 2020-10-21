@@ -20,7 +20,7 @@ export class Network {
         });
         this.Model.add(output);
         this.Model.summary();
-        this.Model.compile({ optimizer: "sgd", loss: "meanSquaredError" });
+        //this.Model.compile({ optimizer: "sgd", loss: "meanSquaredError" });
     }
 
     Predict(inputs: any[]): Turn {
@@ -69,9 +69,9 @@ export class Network {
                         let w = values[j];
 
                         if (Math.random() > 0.5)
-                            values[j] = w + 0.1;
+                            values[j] = w + Math.random();
                         else
-                            values[j] = w - 0.1;
+                            values[j] = w - Math.random();
                     }
                 }
 
