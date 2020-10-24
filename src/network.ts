@@ -1,29 +1,22 @@
 import * as tf from '@tensorflow/tfjs';
+import { Direction } from './snake';
 export enum Turn { Forward, Left, Right }
 
 export class Network {
     Model: tf.Sequential;
 
     constructor() {
-        this.Model = tf.sequential();
-
-        const hidden = tf.layers.dense({
-            units: 8,
-            inputShape: [12],
-            activation: "relu"
+        this.Model = tf.sequential({
+            layers: [
+                tf.layers.dense({ units: 24, inputShape: [24], activation: "relu"}),
+                tf.layers.dense({ units: 12, inputShape: [24], activation: "softmax" }),
+                tf.layers.dense({ units: 8, inputShape: [12], activation: "softmax" })
+            ]
         });
-        this.Model.add(hidden);
-
-        const output = tf.layers.dense({
-            units: 3,
-            activation: "softmax"
-        });
-        this.Model.add(output);
-        this.Model.summary();
-        //this.Model.compile({ optimizer: "sgd", loss: "meanSquaredError" });
+        this.Model.compile({ optimizer: "sgd", loss: "meanSquaredError" });
     }
 
-    Predict(inputs: any[]): Turn {
+    Predict(inputs: any[]): Direction {
         var result = tf.tidy(() => {
             const xs = tf.tensor2d([inputs]);
             const ys = this.Model.predict(xs) as tf.Tensor<tf.Rank>;
@@ -33,15 +26,18 @@ export class Network {
         });
 
         let left = result[0];
-        let continueForward = result[1];
+        let up = result[1];
         let right = result[2];
+        let down = result[3];
 
-        if (left > continueForward && left > right)
-            return Turn.Left;
-        if (continueForward > left && continueForward > right)
-            return Turn.Forward;
-        if (right > continueForward && right > left)
-            return Turn.Right;
+        if (left > up && left > right && left > down)
+            return Direction.Left;
+        if (right > up && right > left && right > down)
+            return Direction.Right;
+        if (down > up && down > right && down > left)
+            return Direction.Left;
+        if (up > left && up > right && up > down)
+            return Direction.Up;
     }
 
     Copy(): Network {
@@ -55,6 +51,7 @@ export class Network {
         return newModel;
     }
 
+    /*
     Mutate(rate) {
         tf.tidy(() => {
             const weights = this.Model.getWeights();
@@ -68,10 +65,7 @@ export class Network {
                     if (Math.random() < rate) {
                         let w = values[j];
 
-                        if (Math.random() > 0.5)
-                            values[j] = w + Math.random();
-                        else
-                            values[j] = w - Math.random();
+                        values[j] = w + this.randn_bm(-1, 1, 1);
                     }
                 }
 
@@ -80,7 +74,57 @@ export class Network {
             }
             this.Model.setWeights(mutatedWeights);
         })
+    }*/
+
+    Mutate(rate = 0.01, mutateFunction = null) {
+        tf.tidy(() => {
+            const weights = this.Model.getWeights();
+            const mutatedWeights = [];
+            for (let i = 0; i < weights.length; i += 1) {
+                const tensor = weights[i];
+                const { shape } = weights[i];
+                // TODO: Evaluate if this should be sync or not
+                const values = tensor.dataSync().slice();
+                for (let j = 0; j < values.length; j += 1) {
+                    if (Math.random() < rate) {
+                        if (mutateFunction) {
+                            values[j] = mutateFunction(values[j]);
+                        } else {
+                            values[j] = Math.min(Math.max(values[j] + this.randomGaussian(), -1), 1);
+                        }
+                    }
+                }
+                const newTensor = tf.tensor(values, shape);
+                mutatedWeights[i] = newTensor;
+            }
+            this.Model.setWeights(mutatedWeights);
+        });
     }
+
+    Crossover(other: Network) {
+        return tf.tidy(() => {
+            const weightsA = this.Model.getWeights();
+            const weightsB = other.Model.getWeights();
+            const childWeights = [];
+            for (let i = 0; i < weightsA.length; i += 1) {
+                const tensorA = weightsA[i];
+                const tensorB = weightsB[i];
+                const { shape } = weightsA[i];
+                // TODO: Evaluate if this should be sync or not
+                const valuesA = tensorA.dataSync().slice();
+                const valuesB = tensorB.dataSync().slice();
+                for (let j = 0; j < valuesA.length; j += 1) {
+                    if (Math.random() < 0.5) {
+                        valuesA[j] = valuesB[j];
+                    }
+                }
+                const newTensor = tf.tensor(valuesA, shape);
+                childWeights[i] = newTensor;
+            }
+            this.Model.setWeights(childWeights);
+        });
+    }
+
 
     GetWeights() {
         return this.Model.getWeights();
@@ -89,4 +133,44 @@ export class Network {
     SetWeights(array) {
         return this.Model.setWeights(array);
     }
+
+    randn_bm(min, max, skew) {
+        let u = 0, v = 0;
+        while (u === 0) u = Math.random(); //Converting [0,1) to (0,1)
+        while (v === 0) v = Math.random();
+        let num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+
+        num = num / 10.0 + 0.5; // Translate to 0 -> 1
+        if (num > 1 || num < 0) num = this.randn_bm(min, max, skew); // resample between 0 and 1 if out of range
+        num = Math.pow(num, skew); // Skew
+        num *= max - min; // Stretch to fill range
+        num += min; // offset to min
+        return num;
+    }
+
+    randomFloat = (min = 0, max = 1) => (Math.random() * (max - min)) + min;
+
+    randomGaussian = (mean = 0, sd = 1) => {
+        let y1;
+        let y2;
+        let x1;
+        let x2;
+        let w;
+        let previous;
+        if (previous) {
+            y1 = y2;
+            previous = false;
+        } else {
+            do {
+                x1 = this.randomFloat(0, 2) - 1;
+                x2 = this.randomFloat(0, 2) - 1;
+                w = (x1 * x1) + (x2 * x2);
+            } while (w >= 1);
+            w = Math.sqrt((-2 * Math.log(w)) / w);
+            y1 = x1 * w;
+            y2 = x2 * w;
+            previous = true;
+        }
+        return (y1 * sd) + mean;
+    };
 }

@@ -1,5 +1,3 @@
-import { Movement } from './movemet';
-
 export enum Direction { Left, Up, Down, Right }
 export enum MoveResult { Nothing, Dead, Apple }
 
@@ -94,14 +92,13 @@ export class Snake {
 
         //Check for silly spinner thing
         if (this.Last8Positions.length >= 8)
-            this.Last8Positions.pop();
+            this.Last8Positions.shift();
         this.Last8Positions.push(newPosition);
 
         if(this.Last8Positions.length >= 8 &&
-             this.SamePosition(this.Last8Positions[0], this.Last8Positions[4]) &&
-        this.SamePosition(this.Last8Positions[1], this.Last8Positions[5]) && 
-        this.SamePosition(this.Last8Positions[2], this.Last8Positions[6]) && 
-        this.SamePosition(this.Last8Positions[3], this.Last8Positions[7]))
+             (this.SamePosition(this.Last8Positions[0], this.Last8Positions[2])
+                || this.SamePosition(this.Last8Positions[0], this.Last8Positions[3])
+                    || this.SamePosition(this.Last8Positions[0], this.Last8Positions[4])))
             return MoveResult.Dead;
 
         return result;

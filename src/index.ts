@@ -10,7 +10,7 @@ const app = new PIXI.Application({ backgroundColor: 0x111111 });
 document.body.appendChild(app.view);
 
 //Game values
-const size = 18;
+const size = 38;
 const space = 2;
 const sizePlusSpace = size + space;
 const widthSquares = app.screen.width / sizePlusSpace;
@@ -21,8 +21,8 @@ let dead = false;
 let seconds = 0;
 let score = 0;
 let saves: Save[] = [];
-let currentLeaders: Save[] = [];
-let currentParent: Save = null;
+let currentLeaders: Network[] = [];
+let currentParent: Network = null;
 let childrenCount = 0;
 let firstRun = true;
 let timeSinceLastApple = 0;
@@ -71,36 +71,46 @@ function ResetGame() {
     Score: score
   });
 
-  if (firstRun && saves.length < 25) {
+  if (firstRun && saves.length < 500) {
     network = new Network();
-    network.Mutate(0.3);
+    network.Mutate(1);
   }
-  else if(currentLeaders.length > 0 && childrenCount < 10)
-  {
-    network = currentParent.Network.Copy();
-    network.Mutate(0.05);
+  else if (currentLeaders.length > 0 && childrenCount < 30) {
+    network = currentParent.Copy();
+    network.Mutate(0.01);
     childrenCount++;
   }
-  else if(currentLeaders.length > 0 && childrenCount >= 10)
-  {
+  else if (currentLeaders.length > 0 && childrenCount >= 30) {
     currentParent = currentLeaders.pop();
-    network = currentParent.Network;
+    network = currentParent;
     childrenCount = 0;
   }
   else {
     firstRun = false;
-    saves = saves.filter(save => save.Score > 20);
     saves = saves.sort((a, b) => (a.Score <= b.Score) ? 1 : 0);
-    currentLeaders = saves.slice(0, 10 < saves.length ? 10 : saves.length - 1);
+    const topSaves = saves.slice(0, 10 < saves.length ? 10 : saves.length - 1);
+    currentLeaders = topSaves.map(a => a.Network);
     currentParent = currentLeaders.pop();
     saves = [];
     childrenCount = 0;
-
     generation++;
 
-    console.log("Current Score Range = " + currentLeaders[0].Score + " - "  + currentParent.Score);
+    console.log("Current Score Range = " + topSaves[0].Score + " - " + topSaves[topSaves.length - 1].Score);
     console.log("Generations " + generation);
-  } 
+
+    let crossOvers: Network[] = [];
+    for (let currentLeader of currentLeaders) {
+      for (let currentLeader2 of currentLeaders) {
+        if (currentLeader == currentLeader2)
+          continue;
+
+        const crazyThing = currentLeader2.Copy()
+        crazyThing.Crossover(currentLeader);
+        crossOvers.push(crazyThing);
+      }
+    }
+    currentLeaders = currentLeaders.concat(crossOvers);
+  }
 
   score = 0;
 
@@ -115,9 +125,10 @@ function SnakeMath(): number[] {
   let index = 0;
   const snakeX = snake.X();
   const snakeY = snake.Y();
+  const around = 2;
 
-  for (let x = -1; x <= 1; x++) {
-    for (let y = -1; y <= 1; y++) {
+  for (let x = -around; x <= around; x++) {
+    for (let y = -around; y <= around; y++) {
       if (x == 0 && y == 0)
         continue;
 
@@ -134,10 +145,13 @@ function SnakeMath(): number[] {
     }
   }
 
-  values.push(snakeX);
-  values.push(widthSquares - snakeX);
-  values.push(snakeY);
-  values.push(heightSquares - snakeY);
+  //values.push(apple.X - snakeX);
+  //values.push(apple.Y - snakeY);
+
+  //values.push(snakeX);
+  //values.push(widthSquares - snakeX);
+  //values.push(snakeY);
+  //values.push(heightSquares - snakeY);
 
   return values;
 }
@@ -154,11 +168,11 @@ app.ticker.add((delta) => {
     return;
 
   seconds += (1 / 60) * delta;
-  if (seconds >= 0.05) {
+  if (seconds >= 0.005) {
     timeSinceLastApple += seconds;
 
-    let predictredTurn = network.Predict(SnakeMath())
-
+    snake.CurrentDirection = network.Predict(SnakeMath())
+    /*
     if (predictredTurn == Turn.Left) {
       if (snake.CurrentDirection == Direction.Left)
         snake.CurrentDirection = Direction.Down;
@@ -178,23 +192,27 @@ app.ticker.add((delta) => {
         snake.CurrentDirection = Direction.Right;
       else if (snake.CurrentDirection == Direction.Down)
         snake.CurrentDirection = Direction.Left;
-    }
+    }*/
 
     var result = snake.Move(apple);
 
     seconds = 0;
-    if(result == MoveResult.Dead || movement.Force || timeSinceLastApple > 20)
-    {
+    if (timeSinceLastApple > 5) {
       timeSinceLastApple = 0;
       movement.Force = false;
       dead = true;
     }
-    else if(result == MoveResult.Apple)
-    {
+    else if (result == MoveResult.Dead || movement.Force) {
       timeSinceLastApple = 0;
-      score = score + 450;
-    } 
-    else
+      movement.Force = false;
+      dead = true;
+      //score = score - 100;
+    }
+    else if (result == MoveResult.Apple) {
+      timeSinceLastApple = 0;
+      score = score + 1000;
+    }
+    else 
       score++;
   }
 
