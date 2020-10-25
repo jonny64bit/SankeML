@@ -1,7 +1,7 @@
 import * as PIXI from 'pixi.js';
 import * as tf from '@tensorflow/tfjs';
 import { Movement } from './movemet';
-import { Snake, Tile, Apple, Direction, MoveResult } from "./snake";
+import { Snake, Tile, Apple, Direction, MoveResult, Position } from "./snake";
 import { Network, Turn } from "./network";
 import { Tensor } from '@tensorflow/tfjs';
 
@@ -122,11 +122,64 @@ function ResetGame() {
 
 function SnakeMath(): number[] {
   let values: number[] = [];
-  let index = 0;
+
   const snakeX = snake.X();
   const snakeY = snake.Y();
-  const around = 2;
+  var currentDirection = snake.CurrentDirection;
 
+  let leftOfSnake: Position;
+  let frontOfSnake: Position;
+  let rightOfSnake: Position;
+
+  let distanceFromApple: Position;
+
+  if (currentDirection == Direction.Up) {
+    leftOfSnake = { X: snakeX - 1, Y: snakeY };
+    rightOfSnake = { X: snakeX + 1, Y: snakeY };
+    frontOfSnake = { X: snakeX, Y: snakeY - 1 };
+
+    //distanceFromApple = { X: snakeX, Y: snakeY - 1 };
+  }
+  else if (currentDirection == Direction.Down) {
+    leftOfSnake = { X: snakeX + 1, Y: snakeY };
+    rightOfSnake = { X: snakeX - 1, Y: snakeY };
+    frontOfSnake = { X: snakeX, Y: snakeY + 1 };
+
+    //distanceFromApple = { X: snakeX, Y: snakeY + 1 };
+  }
+  else if (currentDirection == Direction.Left) {
+    leftOfSnake = { X: snakeX, Y: snakeY + 1 };
+    rightOfSnake = { X: snakeX, Y: snakeY - 1 };
+    frontOfSnake = { X: snakeX - 1, Y: snakeY };
+
+    //distanceFromApple = { X: snakeX - 1, Y: snakeY };
+  }
+  else if (currentDirection == Direction.Right) {
+    leftOfSnake = { X: snakeX, Y: snakeY - 1 };
+    rightOfSnake = { X: snakeX, Y: snakeY + 1 };
+    frontOfSnake = { X: snakeX + 1, Y: snakeY };
+
+    //distanceFromApple = { X: snakeX + 1, Y: snakeY };
+  }
+
+  values[0] = workoutValue(leftOfSnake);
+  values[1] = workoutValue(frontOfSnake);
+  values[2] = workoutValue(rightOfSnake);
+
+  /*
+  const travelVector: Position = { X: snakeX - travelPosition.X, Y: snakeY - travelPosition.Y};
+  const appleVector: Position = { X: snakeX - apple.X, Y: snakeY - apple.Y}; 
+
+  const combinedVector: Position = {X: travelPosition.X + appleVector.X, Y: travelPosition.Y + appleVector.Y};
+  const dived = combinedVector.Y / combinedVector.X;
+  const angle = Math.tan(dived * -1);*/
+  
+  values[3] = Math.atan2(apple.Y - snakeY, apple.X - snakeX);
+
+
+  /*
+  let index = 0;
+  const around = 2;
   for (let x = -around; x <= around; x++) {
     for (let y = -around; y <= around; y++) {
       if (x == 0 && y == 0)
@@ -143,7 +196,7 @@ function SnakeMath(): number[] {
         values[index] = 0;
       index++;
     }
-  }
+  }*/
 
   //values.push(apple.X - snakeX);
   //values.push(apple.Y - snakeY);
@@ -154,6 +207,14 @@ function SnakeMath(): number[] {
   //values.push(heightSquares - snakeY);
 
   return values;
+}
+
+function workoutValue(position: Position): number {
+  if (apple.X == position.X && apple.Y == position.Y)
+    return 1;
+  if (position.X < 0 || position.Y < 0 || position.X == widthSquares || position.Y == heightSquares)
+    return -1;
+  return 0;
 }
 
 ResetGame();
@@ -171,8 +232,7 @@ app.ticker.add((delta) => {
   if (seconds >= 0.005) {
     timeSinceLastApple += seconds;
 
-    snake.CurrentDirection = network.Predict(SnakeMath())
-    /*
+    var predictredTurn = network.Predict(SnakeMath())
     if (predictredTurn == Turn.Left) {
       if (snake.CurrentDirection == Direction.Left)
         snake.CurrentDirection = Direction.Down;
@@ -192,7 +252,7 @@ app.ticker.add((delta) => {
         snake.CurrentDirection = Direction.Right;
       else if (snake.CurrentDirection == Direction.Down)
         snake.CurrentDirection = Direction.Left;
-    }*/
+    }
 
     var result = snake.Move(apple);
 
@@ -212,7 +272,7 @@ app.ticker.add((delta) => {
       timeSinceLastApple = 0;
       score = score + 1000;
     }
-    else 
+    else
       score++;
   }
 

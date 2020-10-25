@@ -1,5 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
-import { Direction } from './snake';
+import { Direction, MoveResult } from './snake';
 export enum Turn { Forward, Left, Right }
 
 export class Network {
@@ -8,7 +8,7 @@ export class Network {
     constructor() {
         this.Model = tf.sequential({
             layers: [
-                tf.layers.dense({ units: 24, inputShape: [24], activation: "relu"}),
+                tf.layers.dense({ units: 24, inputShape: [4], activation: "relu"}),
                 tf.layers.dense({ units: 12, inputShape: [24], activation: "softmax" }),
                 tf.layers.dense({ units: 8, inputShape: [12], activation: "softmax" })
             ]
@@ -16,7 +16,7 @@ export class Network {
         this.Model.compile({ optimizer: "sgd", loss: "meanSquaredError" });
     }
 
-    Predict(inputs: any[]): Direction {
+    Predict(inputs: any[]): Turn {
         var result = tf.tidy(() => {
             const xs = tf.tensor2d([inputs]);
             const ys = this.Model.predict(xs) as tf.Tensor<tf.Rank>;
@@ -26,18 +26,15 @@ export class Network {
         });
 
         let left = result[0];
-        let up = result[1];
+        let forward = result[1];
         let right = result[2];
-        let down = result[3];
 
-        if (left > up && left > right && left > down)
-            return Direction.Left;
-        if (right > up && right > left && right > down)
-            return Direction.Right;
-        if (down > up && down > right && down > left)
-            return Direction.Left;
-        if (up > left && up > right && up > down)
-            return Direction.Up;
+        if (left > forward && left > right)
+            return Turn.Left;
+        if (forward > left && forward > right)
+            return Turn.Forward;
+        else
+            return Turn.Right;
     }
 
     Copy(): Network {
